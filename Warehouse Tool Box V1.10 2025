@@ -1,0 +1,899 @@
+import json
+import os
+import time
+from datetime import datetime
+
+def colored_text(color, text):
+    """Returns a colored text string."""
+    color_codes = {
+        "green": "\033[92m",
+        "red": "\033[91m",
+        "yellow": "\033[93m",
+        "blue": "\033[94m",
+        "reset": "\033[0m"
+    }
+    return color_codes.get(color, "") + str(text) + color_codes["reset"]
+
+def clear_screen():
+    """Clears the terminal screen."""
+    os.system('cls' if os.name == 'nt' else 'clear')
+def calculate_pallets():
+    """Calculates pallets and remaining cases."""
+    while True:
+        try:
+            cases = int(input("Enter the number of cases: "))
+            case_capacity = int(input("Enter the number of cases per pallet: "))
+            pallets = cases // case_capacity
+            remaining_cases = cases % case_capacity
+            
+            print(colored_text("green", "--------------------------------"))
+            print(f"Number of pallets: {colored_text('green', pallets)}")
+            if remaining_cases > 0:
+                print(f"Remaining cases: {colored_text('yellow', remaining_cases)}")
+            print(colored_text("green", "--------------------------------"))
+            break
+        except ValueError:
+            print(colored_text("red", "Invalid input. Please enter numbers only."))
+
+def calculate_pallet_weight():
+    """Estimates pallet weight based on case details."""
+    while True:
+        try:
+            case_weight = float(input("Enter the approximate weight of each case (in lbs): "))
+            cases_per_pallet = int(input("Enter the number of cases on the pallet: "))
+            pallet_weight = case_weight * cases_per_pallet
+            pallet_weight += 25  # Assuming a 25 lbs pallet weight
+            print(colored_text("green", "--------------------------------"))
+            print(f"Estimated pallet weight: {colored_text('green', pallet_weight)} lbs")
+            print(colored_text("green", "--------------------------------"))
+            break
+        except ValueError:
+            print(colored_text("red", "Invalid input. Please enter numbers only."))
+
+def calculate_case_volume():
+    """Calculates the volume of a case."""
+    while True:
+        try:
+            length = float(input("Enter the case length (in inches): "))
+            width = float(input("Enter the case width (in inches): "))
+            height = float(input("Enter the case height (in inches): "))
+            volume = length * width * height
+            print(colored_text("green", "--------------------------------"))
+            print(f"The volume of the case is: {colored_text('green', volume)} cubic inches")
+            print(colored_text("green", "--------------------------------"))
+            break
+        except ValueError:
+            print(colored_text("red", "Invalid input. Please enter numbers only."))
+
+def calculate_pallet_pattern():
+    """Calculates and displays a pallet stacking pattern with alternating layers."""
+    while True:
+        try:
+            # --- Get Pallet Dimensions ---
+            pallet_length = float(input("Enter pallet length (in inches): "))
+            pallet_width = float(input("Enter pallet width (in inches): "))
+            pallet_height_limit = float(input("Enter pallet height limit (in inches): "))
+
+            # --- Get Carton Dimensions ---
+            carton_length = float(input("Enter carton length (in inches): "))
+            carton_width = float(input("Enter carton width (in inches): "))
+            carton_height = float(input("Enter carton height (in inches): "))
+
+            # --- Get Case Count ---
+            total_cases = int(input("Enter total number of cases: "))
+
+            # --- Calculate Base Layer ---
+            cartons_per_row_length = int(pallet_length // carton_length)
+            cartons_per_row_width = int(pallet_width // carton_width)
+            cartons_per_layer = cartons_per_row_length * cartons_per_row_width
+
+            # --- Calculate Layers ---
+            layers = int(pallet_height_limit // carton_height)
+
+            # --- Calculate Total Cartons and Remaining ---
+            total_pallet_capacity = cartons_per_layer * layers
+            remaining_cases = total_cases - total_pallet_capacity
+
+            # --- Output the Results ---
+            print(colored_text("green", "\n--- Pallet Stacking Pattern ---"))
+            print(f"Pallet dimensions: {colored_text('blue', pallet_length)} in x {colored_text('blue', pallet_width)} in")
+            print(f"Cartons per layer: {colored_text('blue', cartons_per_layer)}")
+            print(f"Number of layers: {colored_text('blue', layers)}")
+            print(f"Total pallet capacity: {colored_text('blue', total_pallet_capacity)} cases")
+
+            # --- Visualize the Stacking Pattern ---
+            print("\nStacking Pattern (Top View):")
+            for layer in range(layers):
+                for row in range(cartons_per_row_width):
+                    pattern = ""
+                    for col in range(cartons_per_row_length):
+                        if layer % 2 == 0:  # Even layers
+                            if col == 0 or col == cartons_per_row_length - 1:
+                                pattern += colored_text("blue", "< > ")  # Blue arrows on the ends
+                            else:
+                                pattern += colored_text("green", "^ v ")  # Green arrows in the middle
+                        else:  # Odd layers
+                            if col == 0 or col == cartons_per_row_length - 1:
+                                pattern += colored_text("green", "^ v ")  # Green arrows on the ends
+                            else:
+                                pattern += colored_text("blue", "< > ")  # Blue arrows in the middle
+                    print(pattern)
+                if layer < layers - 1:  # Don't print separator after the last layer
+                    print(colored_text("yellow", "-" * (cartons_per_row_length * 4)))  # Yellow separator
+
+            if remaining_cases > 0:
+                print(f"\nRemaining cases: {colored_text('red', remaining_cases)}")
+                print(colored_text("yellow", "WARNING: Not all cases will fit on the pallet with this configuration."))
+            else:
+                print(colored_text("green", "\nAll cases will fit on the pallet with this configuration."))
+
+            print(colored_text("green", "--- ---"))
+            break
+
+        except ValueError:
+            print(colored_text("red", "Invalid input. Please enter numbers only."))
+
+def calculate_truck_load():
+    """Calculates how many pallets or cases can fit in a truck."""
+    while True:
+        try:
+            # --- Get Truck Dimensions ---
+            truck_length = float(input("Enter truck length (in feet): "))
+            truck_width = float(input("Enter truck width (in feet): "))
+            truck_height = float(input("Enter truck height (in feet): "))
+
+            # --- Get Pallet/Case Dimensions ---
+            unit_type = input("Calculate by pallets (p) or cases (c)? ")
+            if unit_type.lower() == 'p':
+                pallet_length = float(input("Enter pallet length (in feet): "))
+                pallet_width = float(input("Enter pallet width (in feet): "))
+                pallet_height = float(input("Enter pallet height (in feet): "))
+            elif unit_type.lower() == 'c':
+                case_length = float(input("Enter case length (in feet): "))
+                case_width = float(input("Enter case width (in feet): "))
+                case_height = float(input("Enter case height (in feet): "))
+            else:
+                print("Invalid unit type. Please enter 'p' or 'c'.")
+                continue
+
+            # --- Calculate Truck Capacity ---
+            if unit_type.lower() == 'p':
+                pallets_per_row_length = int(truck_length // pallet_length)
+                pallets_per_row_width = int(truck_width // pallet_width)
+                pallets_per_layer = pallets_per_row_length * pallets_per_row_width
+                layers = int(truck_height // pallet_height)
+                total_capacity = pallets_per_layer * layers
+                print(colored_text("green", "\n--- Truck Load Capacity ---"))
+                print(f"Truck dimensions: {colored_text('blue', truck_length)} ft x {colored_text('blue', truck_width)} ft x {colored_text('blue', truck_height)} ft")
+                print(f"Pallets per layer: {colored_text('blue', pallets_per_layer)}")
+                print(f"Number of layers: {colored_text('blue', layers)}")
+                print(f"Total truck capacity: {colored_text('blue', total_capacity)} pallets")
+            else:  # unit_type.lower() == 'c'
+                cases_per_row_length = int(truck_length // case_length)
+                cases_per_row_width = int(truck_width // case_width)
+                cases_per_layer = cases_per_row_length * cases_per_row_width
+                layers = int(truck_height // case_height)
+                total_capacity = cases_per_layer * layers
+                print(colored_text("green", "\n--- Truck Load Capacity ---"))
+                print(f"Truck dimensions: {colored_text('blue', truck_length)} ft x {colored_text('blue', truck_width)} ft x {colored_text('blue', truck_height)} ft")
+                print(f"Cases per layer: {colored_text('blue', cases_per_layer)}")
+                print(f"Number of layers: {colored_text('blue', layers)}")
+                print(f"Total truck capacity: {colored_text('blue', total_capacity)} cases")
+            break
+        except ValueError:
+            print(colored_text("red", "Invalid input. Please enter numbers only."))
+def order_picking_timer():
+    """Tracks the time spent picking an order."""
+    input("Press Enter to start the timer...")
+    start_time = time.time()
+    input("Press Enter to stop the timer...")
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print(colored_text("green", f"\nOrder picking time: {elapsed_time:.2f} seconds"))
+
+def reminder_list():
+    """Manages a list of reminders with descriptions and start dates."""
+
+    reminders_file = "reminders.json"
+
+    def load_reminders():
+        """Loads reminders from a JSON file."""
+        try:
+            with open(reminders_file, "r") as f:
+                return json.load(f)
+        except FileNotFoundError:
+            return []
+
+    def save_reminders(reminders):
+        """Saves reminders to a JSON file."""
+        with open(reminders_file, "w") as f:
+            json.dump(reminders, f, indent=4)
+
+    def add_reminder():
+        """Adds a new reminder to the list."""
+        reminders = load_reminders()
+        description = input("Enter reminder description: ")
+        while True:
+            try:
+                start_date_str = input("Enter start date (YYYY-MM-DD): ")
+                start_date = time.strptime(start_date_str, "%Y-%m-%d")  # Corrected date format
+                break
+            except ValueError:
+                print("Invalid date format. Please use YYYY-MM-DD.")
+        reminders.append({"description": description, "start_date": start_date_str})
+        save_reminders(reminders)
+        print(colored_text("green", "Reminder added!"))
+
+    def view_reminders():
+        """Displays all reminders."""
+        reminders = load_reminders()
+        if reminders:
+            print(colored_text("green", "\n--- Reminders ---"))
+            for i, reminder in enumerate(reminders):
+                print(f"{i+1}. {reminder['description']} (Start: {reminder['start_date']})")
+        else:
+            print(colored_text("yellow", "No reminders yet."))
+
+    def remove_reminder():
+        """Removes a reminder from the list."""
+        reminders = load_reminders()
+        if reminders:
+            view_reminders()
+            while True:
+                try:
+                    index_to_remove = int(input("Enter number of reminder to remove: ")) - 1
+                    if 0 <= index_to_remove < len(reminders):
+                        removed_reminder = reminders.pop(index_to_remove)
+                        save_reminders(reminders)
+                        print(colored_text("green", f"Reminder '{removed_reminder['description']}' removed."))
+                        break
+                    else:
+                        print("Invalid reminder number.")
+                except ValueError:
+                    print("Invalid input. Please enter a number.")
+        else:
+            print(colored_text("yellow", "No reminders to remove."))
+
+    while True:
+        clear_screen()
+        print(colored_text("blue", "Reminder List"))
+        print("1. Add Reminder")
+        print("2. View Reminders")
+        print("3. Remove Reminder")
+        print("4. Back to Main Menu")
+        choice = input("Enter your choice: ")
+
+        if choice == '1':
+            add_reminder()
+            input("Press Enter to continue...")
+        elif choice == '2':
+            view_reminders()
+            input("Press Enter to continue...")
+        elif choice == '3':
+            remove_reminder()
+            input("Press Enter to continue...")
+        elif choice == '4':
+            break
+        else:
+            print("Invalid choice. Please try again.")
+def storage_space_utilization():
+    """Calculates and manages storage space utilization."""
+
+    storage_file = "storage.json"
+
+    def load_storage():
+        """Loads storage data from a JSON file."""
+        try:
+            with open(storage_file, "r") as f:
+                return json.load(f)
+        except FileNotFoundError:
+            return {}
+
+    def save_storage(storage):
+        """Saves storage data to a JSON file."""
+        with open(storage_file, "w") as f:
+            json.dump(storage, f, indent=4)
+
+    def add_bin():
+        """Adds or updates bin information."""
+        storage = load_storage()
+        bin_name = input("Enter bin name: ")
+        while True:
+            try:
+                lanes = int(input("Enter number of lanes: "))
+                break
+            except ValueError:
+                print("Invalid input. Please enter an integer.")
+        storage[bin_name] = {"lanes": lanes}
+        save_storage(storage)
+        print(colored_text("green", f"Bin '{bin_name}' added/updated."))
+
+    def view_storage():
+        """Displays current storage utilization."""
+        storage = load_storage()
+        if storage:
+            print(colored_text("green", "\n--- Storage Utilization ---"))
+            for bin_name, data in storage.items():
+                print(f"{bin_name}: {data['lanes']} lanes")
+        else:
+            print(colored_text("yellow", "No storage data available."))
+
+    def delete_bin():
+        """Deletes a bin from storage."""
+        storage = load_storage()
+        if storage:
+            view_storage()
+            bin_name = input("Enter name of bin to delete: ")
+            if bin_name in storage:
+                del storage[bin_name]
+                save_storage(storage)
+                print(colored_text("green", f"Bin '{bin_name}' deleted."))
+            else:
+                print(colored_text("red", f"Bin '{bin_name}' not found."))
+        else:
+            print(colored_text("yellow", "No bins to delete."))
+
+    while True:
+        clear_screen()
+        print(colored_text("blue", "Storage Space Utilization"))
+        print("1. Add/Update Bin")
+        print("2. View Storage Utilization")
+        print("3. Delete Bin")
+        print("4. Back to Main Menu")
+        choice = input("Enter your choice: ")
+
+        if choice == '1':
+            add_bin()
+            input("Press Enter to continue...")
+        elif choice == '2':
+            view_storage()
+            input("Press Enter to continue...")
+        elif choice == '3':
+            delete_bin()
+            input("Press Enter to continue...")
+        elif choice == '4':
+            break
+        else:
+            print("Invalid choice. Please try again.")
+
+def inventory_tracker():
+    """Manages pallet inventory with lot numbers, bin locations and pallet count per lot/bin"""
+
+    inventory_file = "inventory.json"
+
+    def load_inventory():
+        """Loads inventory from JSON file or creates an empty one."""
+    def load_inventory():
+        """Loads inventory from JSON file or creates an empty one."""
+        try:
+            with open(inventory_file, "r") as f:
+                return json.load(f)
+        except FileNotFoundError:
+            return {}
+
+    def save_inventory(inventory):
+        """Saves inventory to JSON file."""
+        with open(inventory_file, "w") as f:
+            json.dump(inventory, f, indent=4)
+
+    def add_pallet():
+        """Adds a pallet to the inventory, asking for the number of pallets in the lot."""
+        inventory = load_inventory()
+        lot_number = input("Enter lot number: ")
+        bin_location = input("Enter bin location: ")
+
+        while True:
+            try:
+                num_pallets = int(input("Enter the number of pallets in this lot: "))
+                if num_pallets > 0:
+                    break
+                else:
+                    print("Number of pallets must be greater than zero.")
+            except ValueError:
+                print("Invalid input. Please enter a number.")
+
+        if lot_number in inventory:
+            inventory[lot_number]["bin_locations"][bin_location] = num_pallets
+
+        else:  # Correct indentation
+            inventory[lot_number] = {
+                "bin_locations": {
+                    bin_location: num_pallets  # Added colon
+                }
+            }
+        save_inventory(inventory)
+        print(colored_text("green", f"{num_pallets} pallets with lot number '{lot_number}' added to bin '{bin_location}'."))
+
+    def move_pallet():
+        """Moves a specified number of pallets from one bin location to another for a given lot number."""
+        inventory = load_inventory()
+        lot_number = input("Enter lot number of pallet(s) to move: ")
+
+        if lot_number in inventory:
+            print(f"Current bin locations for lot {lot_number}:")
+            for bin_loc, num_pallets in inventory[lot_number]["bin_locations"].items():
+                print(f"- {bin_loc}: {num_pallets} pallets")
+
+            source_bin = input("Enter source bin location: ")
+            if source_bin in inventory[lot_number]["bin_locations"]:
+                while True:
+                    try:
+                        num_to_move = int(input(f"Enter the number of pallets to move (max {inventory[lot_number]['bin_locations'][source_bin]}): "))
+                        if 0 < num_to_move <= inventory[lot_number]['bin_locations'][source_bin]:
+                            break
+                        else:
+                            print(f"Number must be between 1 and {inventory[lot_number]['bin_locations'][source_bin]}.")
+                    except ValueError:
+                        print("Invalid input. Please enter a number.")
+
+                destination_bin = input("Enter destination bin location: ")
+
+                # Update pallet counts
+                inventory[lot_number]["bin_locations"][source_bin] -= num_to_move
+                if inventory[lot_number]["bin_locations"][source_bin] == 0:
+                    del inventory[lot_number]["bin_locations"][source_bin]  # Remove bin if empty
+
+                if destination_bin in inventory[lot_number]["bin_locations"]:
+                    inventory[lot_number]["bin_locations"][destination_bin] += num_to_move
+                else:
+                    inventory[lot_number]["bin_locations"][destination_bin] = num_to_move
+
+                save_inventory(inventory)
+                print(colored_text("green", f"{num_to_move} pallet(s) from lot '{lot_number}' moved from '{source_bin}' to '{destination_bin}'."))
+            else:
+                print(colored_text("red", f"Bin location '{source_bin}' not found for lot '{lot_number}'."))
+        else:
+            print(colored_text("red", f"Lot number '{lot_number}' not found."))
+
+    def remove_pallet():
+      """Removes a specified number of pallets from a lot in inventory."""
+      inventory = load_inventory()
+      lot_number = input("Enter lot number of pallet(s) to remove: ")
+
+      if lot_number in inventory:
+          print(f"Current bin locations for lot {lot_number}:")
+          for bin_loc, num_pallets in inventory[lot_number]["bin_locations"].items():
+              print(f"- {bin_loc}: {num_pallets} pallets")
+
+          bin_location = input("Enter bin location to remove pallet(s) from: ")
+          if bin_location in inventory[lot_number]["bin_locations"]:
+              while True:
+                  try:
+                      num_to_remove = int(input(f"Enter the number of pallets to remove (max {inventory[lot_number]['bin_locations'][bin_location]}): "))
+                      if 0 < num_to_remove <= inventory[lot_number]['bin_locations'][bin_location]:
+                          break
+                      else:
+                          print(f"Number must be between 1 and {inventory[lot_number]['bin_locations'][bin_location]}.")
+                  except ValueError:
+                      print("Invalid input. Please enter a number.")
+
+              # Update pallet count
+              inventory[lot_number]["bin_locations"][bin_location] -= num_to_remove
+              if inventory[lot_number]["bin_locations"][bin_location] == 0:
+                  del inventory[lot_number]["bin_locations"][bin_location]  # Remove bin if empty
+
+              # If no more pallets are left in any bin for this lot, remove the lot
+              if not inventory[lot_number]["bin_locations"]:
+                  del inventory[lot_number]
+
+              save_inventory(inventory)
+              print(colored_text("green", f"{num_to_remove} pallet(s) from lot '{lot_number}' removed from '{bin_location}'."))
+          else:
+              print(colored_text("red", f"Bin location '{bin_location}' not found for lot '{lot_number}'."))
+      else:
+          print(colored_text("red", f"Lot number '{lot_number}' not found."))
+    def view_inventory():
+        """Displays the entire inventory or items in a specific bin/lot, showing pallet counts."""
+        inventory = load_inventory()
+
+        while True:
+            print("\nView Options:")
+            print("1. Entire Inventory")
+            print("2. Items by Lot Number")
+            print("3. Items by Bin Location")
+            print("4. Back to Inventory Menu")
+            choice = input("Enter your choice: ")
+
+            if choice == '1':
+                if inventory:
+                    print(colored_text("green", "\n--- Current Inventory ---"))
+                    for lot_number, data in inventory.items():
+                        print(f"Lot Number: {colored_text('blue', lot_number)}")
+                        for bin_location, num_pallets in data['bin_locations'].items():
+                            print(f"  Bin Location: {colored_text('yellow', bin_location)}, Pallets: {colored_text('green', num_pallets)}")
+                else:
+                    print(colored_text("yellow", "Inventory is empty."))
+                
+            elif choice == '2':
+                lot_number = input("Enter lot number: ")
+                if lot_number in inventory:
+                    print(colored_text("green", f"\n--- Items with Lot Number '{lot_number}' ---"))
+                    for bin_location, num_pallets in inventory[lot_number]['bin_locations'].items():
+                        print(f"  Bin Location: {colored_text('yellow', bin_location)}, Pallets: {colored_text('green', num_pallets)}")
+                else:
+                    print(colored_text("red", f"No items found with lot number '{lot_number}'."))
+                
+            elif choice == '3':
+                bin_location = input("Enter bin location: ")
+                items_in_bin = False
+                for lot_number, data in inventory.items():
+                    if bin_location in data['bin_locations']:
+                        items_in_bin = True
+                        print(colored_text("green", f"\n--- Items in Bin Location '{bin_location}' ---"))
+                        print(f"  Lot Number: {colored_text('blue', lot_number)}, Pallets: {colored_text('green', data['bin_locations'][bin_location])}")
+                if not items_in_bin:
+                    print(colored_text("red", f"No items found in bin location '{bin_location}'."))
+                
+            elif choice == '4':
+                break
+            else:
+                print("Invalid choice. Please try again.")
+
+    while True:
+        clear_screen()
+        print(colored_text("blue", "Inventory Tracker"))
+        print("1. Add Pallet")
+        print("2. Move Pallet")
+        print("3. Remove Pallet")
+        print("4. View Inventory")
+        print("5. Back to Main Menu")
+        choice = input("Enter your choice: ")
+
+        if choice == '1':
+            add_pallet()
+            input("Press Enter to continue...")
+        elif choice == '2':
+            move_pallet()
+            input("Press Enter to continue...")
+        elif choice == '3':
+            remove_pallet()
+            input("Press Enter to continue...")
+        elif choice == '4':
+            view_inventory()
+            input("Press Enter to continue...")
+        elif choice == '5':
+            break
+        else:
+            print("Invalid choice. Please try again.")
+# --- Truck Management Functions ---
+trucks_file = "trucks.json" #File path for trucks data
+
+def load_trucks():
+    """Loads truck data from JSON file."""
+    try:
+        with open(trucks_file, "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
+def save_trucks(trucks):
+    """Saves truck data to JSON file."""
+    with open(trucks_file, "w") as f:
+        json.dump(trucks, f, indent=4)
+
+def check_in_truck():
+    """Checks in a truck with timestamp, PO/TO, driver, company, and door."""
+    trucks = load_trucks()
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    po_to = input("Enter PO/TO #: ")
+    driver_name = input("Enter driver's name: ")
+    company_name = input("Enter company name: ")
+    while True:
+        try:
+            door_number = int(input("Enter door number: "))
+            break
+        except ValueError:
+            print("Invalid door number. Please enter an integer.")
+
+    truck_id = f"{po_to}-{timestamp}"  # Create a unique ID for the truck
+    trucks[truck_id] = {
+        "timestamp": timestamp,
+        "po_to": po_to,
+        "driver": driver_name,
+        "company": company_name,
+        "door": door_number,
+        "status": "In Progress"  # Initial status is "In Progress"
+    }
+    save_trucks(trucks)
+    print(colored_text("green", f"Truck checked in at {timestamp}"))
+
+def schedule_truck():
+    """Schedules a truck for a future date and time."""
+    trucks = load_trucks()
+    while True:
+        try:
+            schedule_datetime_str = input("Enter scheduled date and time (YYYY-MM-DD HH:MM): ")
+            schedule_datetime = datetime.strptime(schedule_datetime_str, "%Y-%m-%d %H:%M")
+            if schedule_datetime <= datetime.now():
+                print("Scheduled time must be in the future.")
+                continue
+            break
+        except ValueError:
+            print("Invalid date/time format. Please use বিজ্ঞানীরা-MM-DD HH:MM.")
+
+    po_to = input("Enter PO/TO #: ")
+    driver_name = input("Enter driver's name: ")
+    company_name = input("Enter company name: ")
+    while True:
+        try:
+            door_number = int(input("Enter door number: "))
+            break
+        except ValueError:
+            print("Invalid door number. Please enter an integer.")
+
+    truck_id = f"{po_to}-{schedule_datetime_str}"  # Unique ID
+    trucks[truck_id] = {
+        "timestamp": schedule_datetime_str,  # Store as string for consistency
+        "po_to": po_to,
+        "driver": driver_name,
+        "company": company_name,
+        "door": door_number,
+        "status": "Scheduled"  # Status is "Scheduled"
+    }
+    save_trucks(trucks)
+    print(colored_text("green", f"Truck scheduled for {schedule_datetime_str}"))
+
+def check_out_truck():
+    """Check out a truck that has completed its process."""
+    trucks = load_trucks()
+    if not trucks:
+        print(colored_text("yellow", "No trucks to check out."))
+        return
+
+    view_trucks_in_progress()
+    truck_id = input("Enter the PO/TO # of the truck to check out: ")
+
+    for id, truck in trucks.items():
+         if truck['po_to'] == truck_id and truck['status'] == "In Progress":
+            truck['status'] = "Checked Out"
+            truck['checkout_time'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Record checkout time
+            save_trucks(trucks)
+            print(colored_text("green", f"Truck {truck_id} checked out successfully."))
+            return
+
+    print(colored_text("red", f"Truck {truck_id} not found or not in progress."))
+
+def view_trucks_in_progress():
+    """Displays trucks that are currently in progress."""
+    trucks = load_trucks()
+    in_progress_trucks = {k: v for k, v in trucks.items() if v["status"] == "In Progress"}
+    if in_progress_trucks:
+        print(colored_text("green", "\n--- Trucks In Progress ---"))
+        for truck_id, truck_data in in_progress_trucks.items():
+            print(f"ID: {colored_text('blue', truck_id)}")
+            print(f"  PO/TO #: {colored_text('yellow', truck_data['po_to'])}")
+            print(f"  Checked In: {colored_text('yellow', truck_data['timestamp'])}")
+            print(f"  Driver: {colored_text('yellow', truck_data['driver'])}")
+            print(f"  Company: {colored_text('yellow', truck_data['company'])}")
+            print(f"  Door: {colored_text('yellow', truck_data['door'])}")
+            print(f"  Status: {colored_text('yellow', truck_data['status'])}")
+    else:
+        print(colored_text("yellow", "No trucks currently in progress."))
+
+def view_trucks_checked_out_today():
+    """Displays trucks that were checked out today."""
+    trucks = load_trucks()
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    checked_out_trucks = {
+        k: v for k, v in trucks.items() if v["status"] == "Checked Out" and v["checkout_time"].startswith(today_str)
+    }
+    if checked_out_trucks:
+        print(colored_text("green", "\n--- Trucks Checked Out Today ---"))
+        for truck_id, truck_data in checked_out_trucks.items():
+            print(f"ID: {colored_text('blue', truck_id)}")
+            print(f"  PO/TO #: {colored_text('yellow', truck_data['po_to'])}")
+            print(f"  Checked In: {colored_text('yellow', truck_data['timestamp'])}")
+            print(f"  Checked Out: {colored_text('yellow', truck_data['checkout_time'])}")
+            print(f"  Driver: {colored_text('yellow', truck_data['driver'])}")
+            print(f"  Company: {colored_text('yellow', truck_data['company'])}")
+            print(f"  Door: {colored_text('yellow', truck_data['door'])}")
+    else:
+        print(colored_text("yellow", "No trucks checked out today."))
+
+def view_scheduled_trucks():
+    """Displays scheduled trucks."""
+    trucks = load_trucks()
+    scheduled_trucks = {k: v for k, v in trucks.items() if v["status"] == "Scheduled"}
+    if scheduled_trucks:
+        print(colored_text("green", "\n--- Scheduled Trucks ---"))
+        for truck_id, truck_data in scheduled_trucks.items():
+            print(f"ID: {colored_text('blue', truck_id)}")
+            print(f"  Scheduled for: {colored_text('yellow', truck_data['timestamp'])}")
+            print(f"  PO/TO #: {colored_text('yellow', truck_data['po_to'])}")
+            print(f"  Driver: {colored_text('yellow', truck_data['driver'])}")
+            print(f"  Company: {colored_text('yellow', truck_data['company'])}")
+            print(f"  Door: {colored_text('yellow', truck_data['door'])}")
+            print(f"  Company: {colored_text('yellow', truck_data['company'])}")
+            print(f"  Door: {colored_text('yellow', truck_data['door'])}")
+    else:
+        print(colored_text("yellow", "No trucks currently scheduled."))
+
+def erase_truck():
+    """Erases a truck from the records."""
+    trucks = load_trucks()
+    if not trucks:
+        print(colored_text("yellow", "No trucks to erase."))
+        return
+
+    po_to = input("Enter the PO/TO # of the truck to erase: ")
+
+    truck_to_delete = None
+    for truck_id, truck_data in trucks.items():
+        if truck_data['po_to'] == po_to:
+            truck_to_delete = truck_id
+            break
+
+    if truck_to_delete:
+        del trucks[truck_to_delete]
+        save_trucks(trucks)
+        print(colored_text("green", f"Truck {po_to} erased successfully."))
+    else:
+        print(colored_text("red", f"Truck {po_to} not found."))
+
+def find_truck():
+    """Finds a truck by date and time or PO/TO #."""
+    trucks = load_trucks()
+    if not trucks:
+        print(colored_text("yellow", "No trucks found in records."))
+        return
+
+    search_by = input("Find truck by (1) Date and Time or (2) PO/TO #: ")
+
+    if search_by == '1':
+        while True:
+            try:
+                search_datetime_str = input("Enter date and time (YYYY-MM-DD HH:MM): ")
+                search_datetime = datetime.strptime(search_datetime_str, "%Y-%m-%d %H:%M")
+                break
+            except ValueError:
+                print("Invalid date/time format. Please use YYYY-MM-DD HH:MM.")
+
+        found_trucks = []
+        for truck_id, truck_data in trucks.items():
+            if 'timestamp' in truck_data:
+                try:
+                    truck_datetime = datetime.strptime(truck_data['timestamp'], "%Y-%m-%d %H:%M:%S")
+                    if truck_datetime >= search_datetime:
+                         found_trucks.append((truck_id, truck_data))
+                except ValueError:
+                    # Handle cases where timestamp might be in a different format
+                    pass
+
+        if found_trucks:
+             for truck_id, truck_data in found_trucks:
+                print(colored_text("green", "\n--- Found Truck ---"))
+                print(f"ID: {colored_text('blue', truck_id)}")
+                print(f"  PO/TO #: {colored_text('yellow', truck_data['po_to'])}")
+                print(f"  Timestamp: {colored_text('yellow', truck_data['timestamp'])}")
+                print(f"  Driver: {colored_text('yellow', truck_data['driver'])}")
+                print(f"  Company: {colored_text('yellow', truck_data['company'])}") # Corrected line
+                print(f"  Door: {colored_text('yellow', truck_data['door'])}")
+                if 'status' in truck_data:
+                    print(f"  Status: {colored_text('yellow', truck_data['status'])}")
+                if 'checkout_time' in truck_data:
+                     print(f"  Checked Out: {colored_text('yellow', truck_data['checkout_time'])}")
+
+        else:
+            print(colored_text("yellow", "No trucks found matching the criteria."))
+
+    elif search_by == '2':
+        po_to = input("Enter PO/TO #: ")
+        for truck_id, truck_data in trucks.items():
+            if truck_data['po_to'] == po_to:
+                print(colored_text("green", "\n--- Found Truck ---"))
+                print(f"ID: {colored_text('blue', truck_id)}")
+                print(f"  PO/TO #: {colored_text('yellow', truck_data['po_to'])}")
+                print(f"  Timestamp: {colored_text('yellow', truck_data['timestamp'])}")
+                print(f"  Driver: {colored_text('yellow', truck_data['driver'])}")
+                print(f"  Company: {colored_text('yellow', truck_data['company'])}")
+                print(f"  Door: {colored_text('yellow', truck_data['door'])}")
+                print(f"  Door: {colored_text('yellow', truck_data['door'])}")
+                if 'status' in truck_data:
+                    print(f"  Status: {colored_text('yellow', truck_data['status'])}")
+                if 'checkout_time' in truck_data:
+                    print(f"  Checked Out: {colored_text('yellow', truck_data['checkout_time'])}")
+                return
+
+        print(colored_text("yellow", f"No truck found with PO/TO # {po_to}"))
+
+    else:
+        print(colored_text("red", "Invalid search option."))
+def truck_manager():
+    """Manages truck check-in, scheduling, viewing, and related operations."""
+    # trucks_file is already defined globally above 
+
+    while True:
+        clear_screen()
+        print(colored_text("blue", "Truck Manager"))
+        print("1. Check-In Truck")
+        print("2. Schedule Truck")
+        print("3. Check-Out Truck")
+        print("4. View Trucks In Progress")
+        print("5. View Trucks Checked Out Today")
+        print("6. View Scheduled Trucks")
+        print("7. Erase Truck")
+        print("8. Find Truck")
+        print("9. Back to Main Menu")
+        choice = input("Enter your choice: ")
+
+        if choice == '1':
+            check_in_truck()
+            input("Press Enter to continue...")
+        elif choice == '2':
+            schedule_truck()
+            input("Press Enter to continue...")
+        elif choice == '3':
+            check_out_truck()
+            input("Press Enter to continue...")
+        elif choice == '4':
+            view_trucks_in_progress()
+            input("Press Enter to continue...")
+        elif choice == '5':
+            view_trucks_checked_out_today()
+            input("Press Enter to continue...")
+        elif choice == '6':
+            view_scheduled_trucks()
+            input("Press Enter to continue...")
+        elif choice == '7':
+            erase_truck()
+            input("Press Enter to continue...")
+        elif choice == '8':
+            find_truck()
+            input("Press Enter to continue...")
+        elif choice == '9':
+            break
+        else:
+            print(colored_text("red", "Invalid choice. Please try again."))
+
+def main_menu():
+    """Displays the main menu."""
+    while True:
+        clear_screen()
+        print(colored_text("blue", "Abriam's Warehouse Tool Box V1.10 2025"))
+        print("1. Calculate Pallets")
+        print("2. Estimate Pallet Weight")
+        print("3. Calculate Pallet Pattern")
+        print("4. Calculate Case Volume")
+        print("5. Calculate Truck Load")
+        print("6. Reminder List")
+        print("7. Order Picking Timer")
+        print("8. Storage Space Utilization")
+        print("9. Inventory Tracker")
+        print("10. Truck Manager")
+        print("11. Exit")
+        choice = input("Enter your choice: ")
+
+        if choice == '1':
+            calculate_pallets()
+            input("Press Enter to continue...")
+        elif choice == '2':
+            calculate_pallet_weight()
+            input("Press Enter to continue...")
+        elif choice == '3':
+            calculate_pallet_pattern()
+            input("Press Enter to continue...")
+        elif choice == '4':
+            calculate_case_volume()
+            input("Press Enter to continue...")
+        elif choice == '5':
+            calculate_truck_load()
+            input("Press Enter to continue...")
+        elif choice == '6':
+            reminder_list()
+        elif choice == '7':
+            order_picking_timer()
+            input("Press Enter to continue...")
+        elif choice == '8':
+            storage_space_utilization()
+        elif choice == '9':
+            inventory_tracker()
+        elif choice == '10':
+            truck_manager()
+        elif choice == '11':
+            print("Exiting...")
+            break
+        else:
+            print("Invalid choice. Please try again.")
+
+if __name__ == "__main__":
+    main_menu()
